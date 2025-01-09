@@ -1,0 +1,42 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <RootNamespace>libreland-client-mods</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(GamePath)'==''">
+		<GamePath>$(MSBuildThisFileDirectory)Anyland</GamePath>
+		<GamePath Condition="Exists('C:\Program Files (x86)\Steam\steamapps\common\Anyland\')">C:\Program Files (x86)\Steam\steamapps\common\Anyland\</GamePath>
+		<GamePath Condition="Exists('$(HOME)/.steam/steam/steamapps/common/Anyland/')">$(HOME)/.steam/steam/steamapps/common/Anyland/</GamePath>
+		<GamePath Condition="Exists('E:\Programs\Steam\steamapps\common\Anyland')">E:\Programs\Steam\steamapps\common\Anyland\</GamePath>
+		<GamePath Condition="Exists('D:\Games\SteamLibrary\steamapps\common\Anyland')">D:\Games\SteamLibrary\steamapps\common\Anyland\</GamePath>
+		<GamePath Condition="Exists('D:\SteamLibrary\steamapps\common\Anyland')">D:\SteamLibrary\steamapps\common\Anyland\</GamePath>
+		<GamePath Condition="Exists('E:\Games\Steam\steamapps\common\Anyland')">E:\Games\Steam\steamapps\common\Anyland\</GamePath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="HarmonyLib">
+        <HintPath Condition="Exists('$(GamePath)BepInEx\core\0Harmony.dll')">$(GamePath)BepInEx\core\0Harmony.dll</HintPath>
+        <Private>False</Private>
+    </Reference>
+    <Reference Include="BepinEx">
+      <HintPath Condition="Exists('$(GamePath)BepInEx\core\BepInEx.dll')">$(GamePath)BepInEx\core\BepInEx.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath Condition="Exists('$(GamePath)\anyland_Data\Managed\UnityEngine.dll')">$(GamePath)\anyland_Data\Managed\UnityEngine.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath Condition="Exists('$(GamePath)\anyland_Data\Managed\UnityEngine.CoreModule.dll')">$(GamePath)\anyland_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Message Text="Attempting to copy $(TargetFileName) to $(GamePath)BepInEx\plugins" Importance="high" />
+    <Copy SourceFiles="$(TargetDir)$(TargetFileName)" DestinationFolder="$(GamePath)BepInEx\plugins" ContinueOnError="true" />
+  </Target>
+</Project>
