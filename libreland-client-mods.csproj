@@ -33,6 +33,10 @@
       <HintPath Condition="Exists('$(GamePath)\anyland_Data\Managed\UnityEngine.CoreModule.dll')">$(GamePath)\anyland_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="Assembly-CSharp">
+      <HintPath Condition="Exists('$(GamePath)\anyland_Data\Managed\Assembly-CSharp.dll')">$(GamePath)\anyland_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
