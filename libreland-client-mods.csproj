@@ -44,6 +44,10 @@
       <HintPath Condition="Exists('$(GamePath)\anyland_Data\Managed\Assembly-CSharp.dll')">$(GamePath)\anyland_Data\Managed\Assembly-CSharp.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="UnityEngine.UnityWebRequestWWWModule">
+      <HintPath Condition="Exists('$(GamePath)\anyland_Data\Managed\UnityEngine.UnityWebRequestWWWModule.dll')">$(GamePath)\anyland_Data\Managed\UnityEngine.UnityWebRequestWWWModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">

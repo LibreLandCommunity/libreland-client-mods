@@ -3,6 +3,8 @@ using BepInEx;
 using UnityEngine;
 using System.Runtime.CompilerServices;
 using System.Reflection;
+using System.Collections;
+using System.Reflection.Emit;
 
 public static class PluginInfo {
     public const string GUID = "dev.librelandcommunity.client";
@@ -15,9 +17,10 @@ public class LibreLandClient : BaseUnityPlugin
 {
     private readonly Harmony harmony = new Harmony(PluginInfo.GUID);
 
-    public static string baseUrl = "Geoff";
-    public static string thingDefinitionUrl = "Deez";
-    public static string thingDefinitionAreaBundleUrl = "Nuts";
+    public static string baseUrl = "http://127.0.0.1:8000";
+    public static string thingDefinitionUrl = "http://127.0.0.1:8001";
+    public static string thingDefinitionAreaBundleUrl = "http://127.0.0.1:8002";
+    //public static string thingDefinitionAreaBundleUrl = "http://127.0.0.1:8002";
 
     private void Awake()
     {
@@ -25,50 +28,71 @@ public class LibreLandClient : BaseUnityPlugin
         harmony.PatchAll();
     }
 
-    // Test patch to see if changing stuff worked
-    // CURRENTLY BROKEN BUT COMPILES DON'T USE YET
-    [HarmonyPatch(typeof(ServerManager), nameof(ServerManager.Startup))]
+    [HarmonyPatch(typeof(ServerManager))]
     class ServerManagerPatch {
+        [HarmonyPatch(nameof(ServerManager.Startup))]
         [HarmonyPrefix]
         static bool ChangeBaseUrl(ServerManager __instance, string ___serverBaseUrl){
-            Debug.Log($"Chaing RemoteServerBaseUrl to {baseUrl}");
+            Debug.Log($"Changing RemoteServerBaseUrl to {baseUrl}");
 
-            // I gotta remember how I did this... I don't have a backup of my old mod :(
-            FieldInfo info = AccessTools.Field(typeof(ServerManager), "status");
             try {
-                info.SetValue(__instance, ManagerStatus.Initializing);
-            } catch {
+                MethodInfo setterMethod = typeof(ServerManager).GetProperty("status", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetSetMethod(true);
+                setterMethod.Invoke(__instance, new object[] { ManagerStatus.Initializing }); 
+                ___serverBaseUrl = __instance.RemoteServerBaseUrl = baseUrl;
+                __instance.StartAuthentication();
+                return true;
+            } catch (Exception ex) {
                 Debug.LogError("It's fucked!");
+                Debug.LogError(ex);
+                return false;
             }
-            ___serverBaseUrl = __instance.RemoteServerBaseUrl = baseUrl;
-            __instance.StartAuthentication();
-
-            return false;
         }
 
-        [HarmonyPostfix]
-        static void ValidateChangeBaseUrl(ServerManager __instance) {
-            Debug.Log($"Newly Modified RemoteServerBaseUrl: {__instance.RemoteServerBaseUrl}");
-            Debug.Log($"Newly Modified ManagerStatus: {__instance.status}");
-            Debug.Log($"Newly Modified GetThingDefinition_CDN: {ServerURLs.GetThingDefinition_CDN}");
-            Debug.Log($"Newly Modified GetThingDefinitionAreaBundle_CDN: {ServerURLs.GetThingDefinitionAreaBundle_CDN}");
+        // Stupid transpiler shit, I hate it because the game is such an old unity version the other methods break
+        // that's my theory idk tbh anymore
+        [HarmonyPatch("GetThingDefinition")]
+        [HarmonyTranspiler]
+        public static IEnumerable<CodeInstruction> Transpile1(IEnumerable<CodeInstruction> instructions)
+        {
+            var instructionsList = instructions.ToList();
+
+            for (int i = 0; i < instructionsList.Count; i++)
+            {
+                var instruction = instructionsList[i];
+
+                if (instruction.opcode.Equals(OpCodes.Ldsfld) &&
+                    instruction.operand is FieldInfo fieldInfo &&
+                    fieldInfo.Name.Equals("GetThingDefinition_CDN") &&
+                    fieldInfo.DeclaringType.Equals(typeof(ServerURLs)))
+                {
+                    instructionsList[i] = new CodeInstruction(OpCodes.Ldstr, thingDefinitionUrl);
+                }
+            }
+
+            // Return the modified instructions
+            return instructionsList.AsEnumerable();
+        }
+
+        [HarmonyPatch("GetThingDefinitionAreaBundle")]
+        [HarmonyTranspiler]
+        public static IEnumerable<CodeInstruction> Transpiler2(IEnumerable<CodeInstruction> instructions)
+        {
+            var instructionsList = instructions.ToList();
+
+            for (int i = 0; i < instructionsList.Count; i++)
+            {
+                var instruction = instructionsList[i];
+
+                if (instruction.opcode.Equals(OpCodes.Ldsfld) &&
+                    instruction.operand is FieldInfo fieldInfo &&
+                    fieldInfo.Name.Equals("GetThingDefinitionAreaBundle_CDN") &&
+                    fieldInfo.DeclaringType.Equals(typeof(ServerURLs)))
+                {
+                    instructionsList[i] = new CodeInstruction(OpCodes.Ldstr, thingDefinitionAreaBundleUrl);
+                }
+            }
+
+            return instructionsList.AsEnumerable();
         }
     }
-
-    // Temp not working will figure out later
-    //[HarmonyPatch(typeof(ServerURLs), "GetThingDefinition_CDN", MethodType.Getter)]
-    //static class ServerURLsPatch {
-    //    [HarmonyPostfix]
-    //    static void ChangeThingDefinitionCDN(ref string __result) {
-    //        Debug.Log("Patching GetThingDefinition_CDN");
-    //        __result = thingDefinitionUrl;
-    //    }
-    //    //[HarmonyPatch(typeof(ServerURLs))]
-    //    //[HarmonyPatch("GetThingDefinitionAreaBundle_CDN", MethodType.Getter)]
-    //    //[HarmonyPostfix]
-    //    //static void ChangeThingDefinitionAreaBundleCDN(ref string __result) {
-    //    //    Debug.Log("Patching GetThingDefinitionAreaBundle_CDN");
-    //    //    __result = thingDefinitionAreaBundleUrl;
-    //    //}
-    //}
 }
