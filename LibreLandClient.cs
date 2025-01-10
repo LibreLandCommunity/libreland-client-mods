@@ -1,15 +1,13 @@
 ﻿using HarmonyLib;
 using BepInEx;
 using UnityEngine;
-using System.Runtime.CompilerServices;
 using System.Reflection;
-using System.Collections;
 using System.Reflection.Emit;
 
 public static class PluginInfo {
     public const string GUID = "dev.librelandcommunity.client";
     public const string NAME = "LibreLand-Client";
-    public const string VERSION = "0.0.1";
+    public const string VERSION = "0.0.4";
 }
 
 [BepInPlugin(PluginInfo.GUID, PluginInfo.NAME, PluginInfo.VERSION)]
@@ -20,7 +18,8 @@ public class LibreLandClient : BaseUnityPlugin
     public static string baseUrl = "http://127.0.0.1:8000";
     public static string thingDefinitionUrl = "http://127.0.0.1:8001";
     public static string thingDefinitionAreaBundleUrl = "http://127.0.0.1:8002";
-    //public static string thingDefinitionAreaBundleUrl = "http://127.0.0.1:8002";
+    public static string steamScreenshotPrefixHTTP = "http://127.0.0.1:8003";
+    public static string steamScreenshotPrefixHTTPS = "http://127.0.0.1:8003";
 
     private void Awake()
     {
@@ -52,7 +51,7 @@ public class LibreLandClient : BaseUnityPlugin
         // that's my theory idk tbh anymore
         [HarmonyPatch("GetThingDefinition")]
         [HarmonyTranspiler]
-        public static IEnumerable<CodeInstruction> Transpile1(IEnumerable<CodeInstruction> instructions)
+        static IEnumerable<CodeInstruction> Transpile1(IEnumerable<CodeInstruction> instructions)
         {
             var instructionsList = instructions.ToList();
 
@@ -75,7 +74,7 @@ public class LibreLandClient : BaseUnityPlugin
 
         [HarmonyPatch("GetThingDefinitionAreaBundle")]
         [HarmonyTranspiler]
-        public static IEnumerable<CodeInstruction> Transpiler2(IEnumerable<CodeInstruction> instructions)
+        static IEnumerable<CodeInstruction> Transpiler2(IEnumerable<CodeInstruction> instructions)
         {
             var instructionsList = instructions.ToList();
 
@@ -93,6 +92,93 @@ public class LibreLandClient : BaseUnityPlugin
             }
 
             return instructionsList.AsEnumerable();
+        }
+    }
+
+    // This is the ugc stuff I don't quite know how it works but this should all theoretically work
+    [HarmonyPatch(typeof(ThingPart), nameof(ThingPart.GetFullImageUrl))]
+    class ThingPartPatch {
+        [HarmonyPostfix]
+        public static void Postfix(ref string __result)
+        {
+            if (__result.Contains("http://steamuserimages-a.akamaihd.net/ugc/"))
+            {
+                __result = __result.Replace("http://steamuserimages-a.akamaihd.net/ugc/", steamScreenshotPrefixHTTP);
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(TextLink))]
+    class TextLinkPatch {
+        [HarmonyPatch(nameof(TextLink.GetFullUrl))]
+        [HarmonyPostfix]
+        static void Postfix(ref string __result)
+        {
+            if (__result.Contains("https://steamuserimages-a.akamaihd.net/ugc/"))
+            {
+                __result = __result.Replace("http://steamuserimages-a.akamaihd.net/ugc/", steamScreenshotPrefixHTTP);
+            }
+        }
+
+        [HarmonyPatch(nameof(TextLink.TryParseURL))]
+        [HarmonyTranspiler]
+        public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+        {          
+            var instructionsList = instructions.ToList();
+            
+            for (int i = 0; i < instructionsList.Count; i++)
+            {
+                var instruction = instructionsList[i];
+                
+                if (instruction.opcode.Equals(OpCodes.Ldstr) && instruction.operand is string str && str.Equals("steamuserimages-a.akamaihd.net/"))
+                {
+                    instructionsList[i] = new CodeInstruction(OpCodes.Ldstr, steamScreenshotPrefixHTTP.Replace("http://", ""));
+                }
+            }
+            
+            return instructionsList;
+        }
+    }
+
+    [HarmonyPatch(typeof(ReferenceImageQuad), "Update")]
+    class ReferenceImageQuadPatch {
+        [HarmonyTranspiler]
+        public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+        {          
+            var instructionsList = instructions.ToList();
+            
+            for (int i = 0; i < instructionsList.Count; i++)
+            {
+                var instruction = instructionsList[i];
+                
+                if (instruction.opcode.Equals(OpCodes.Ldstr) && instruction.operand is string str && str.Equals("https://steamuserimages-a.akamaihd.net/ugc/"))
+                {
+                    instructionsList[i] = new CodeInstruction(OpCodes.Ldstr, steamScreenshotPrefixHTTPS);
+                }
+            }
+            
+            return instructionsList;
+        }
+    }
+
+    [HarmonyPatch(typeof(ThingPartCopyPasteDialog), "PasteImageIfValidates")]
+    class ThingPartCopyPasteDialogPatch {
+        [HarmonyTranspiler]
+        public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+        {          
+            var instructionsList = instructions.ToList();
+            
+            for (int i = 0; i < instructionsList.Count; i++)
+            {
+                var instruction = instructionsList[i];
+                
+                if (instruction.opcode.Equals(OpCodes.Ldstr) && instruction.operand is string str && str.Equals("https://steamuserimages-a.akamaihd.net/ugc/"))
+                {
+                    instructionsList[i] = new CodeInstruction(OpCodes.Ldstr, steamScreenshotPrefixHTTPS);
+                }
+            }
+            
+            return instructionsList;
         }
     }
 }
