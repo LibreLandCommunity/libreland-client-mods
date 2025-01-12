@@ -53,19 +53,15 @@ public class LibreLandClient : BaseUnityPlugin
         [HarmonyPrefix]
         static bool ChangeBaseUrl(ServerManager __instance, string ___serverBaseUrl){
             Debug.Log($"Changing RemoteServerBaseUrl to {urlConfig.Value}");
+            __instance.RemoteServerBaseUrl = urlConfig.Value;
+            return true;
+        }
 
-            try {
-                MethodInfo setterMethod = typeof(ServerManager).GetProperty("status", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetSetMethod(true);
-                setterMethod.Invoke(__instance, new object[] { ManagerStatus.Initializing }); 
-                __instance.RemoteServerBaseUrl = urlConfig.Value;
-                ___serverBaseUrl = __instance.RemoteServerBaseUrl;
-                __instance.StartAuthentication();
-                return false;
-            } catch (Exception ex) {
-                Debug.LogError("It's fucked!");
-                Debug.LogError(ex);
-                return true;
-            }
+        [HarmonyPatch(nameof(ServerManager.Startup))]
+        [HarmonyPostfix]
+        static void Check(ServerManager __instance, string ___serverBaseUrl){
+            Debug.Log($"Final RemoteServerBaseUrl value: {__instance.RemoteServerBaseUrl}");
+            Debug.Log($"Final ServerBaseUrl value: {___serverBaseUrl}");
         }
 
         // Stupid transpiler shit, I hate it because the game is such an old unity version the other methods break
