@@ -60,11 +60,11 @@ public class LibreLandClient : BaseUnityPlugin
                 __instance.RemoteServerBaseUrl = urlConfig.Value;
                 ___serverBaseUrl = __instance.RemoteServerBaseUrl;
                 __instance.StartAuthentication();
-                return true;
+                return false;
             } catch (Exception ex) {
                 Debug.LogError("It's fucked!");
                 Debug.LogError(ex);
-                return false;
+                return true;
             }
         }
 
