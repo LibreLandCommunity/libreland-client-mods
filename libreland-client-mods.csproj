@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <AssemblyTitle>Librelan-Client</AssemblyTitle>
+    <AssemblyTitle>Libreland-Client</AssemblyTitle>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <TargetFramework>net46</TargetFramework>
 	  <LangVersion>10</LangVersion>

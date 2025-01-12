@@ -8,12 +8,12 @@ using System.Data;
 
 public static class PluginInfo {
     public const string GUID = "dev.librelandcommunity.client";
-    public const string NAME = "LibreLand-Client";
+    public const string NAME = "Libreland-Client";
     public const string VERSION = "0.0.9";
 }
 
 [BepInPlugin(PluginInfo.GUID, PluginInfo.NAME, PluginInfo.VERSION)]
-public class LibreLandClient : BaseUnityPlugin
+public class LibrelandClient : BaseUnityPlugin
 {
     private readonly Harmony harmony = new Harmony(PluginInfo.GUID);
 
