@@ -9,7 +9,7 @@ using System.Data;
 public static class PluginInfo {
     public const string GUID = "dev.librelandcommunity.client";
     public const string NAME = "LibreLand-Client";
-    public const string VERSION = "0.0.8";
+    public const string VERSION = "0.0.9";
 }
 
 [BepInPlugin(PluginInfo.GUID, PluginInfo.NAME, PluginInfo.VERSION)]
@@ -37,8 +37,8 @@ public class LibreLandClient : BaseUnityPlugin
 
     private void Awake()
     {
-        urls = new ConfigFile(Path.Combine(Paths.ConfigPath, "LibreLand-Server-Urls.cfg"), true);
-        user = new ConfigFile(Path.Combine(Paths.ConfigPath, "LibreLand-Server-User.cfg"), true);
+        urls = new ConfigFile(Path.Combine(Paths.ConfigPath, "Libreland-Server-Urls.cfg"), true);
+        user = new ConfigFile(Path.Combine(Paths.ConfigPath, "Libreland-Server-User.cfg"), true);
 
         urlConfig = urls.Bind("URL", "BaseURL", baseUrl, "Replacement url that used to point to 'anyland.com'");
         thingDefinitionUrlConfig = urls.Bind("URL", "ThingDefinitionURL", baseThingDefinitionUrl, "Replacement url that used to points to things");
