@@ -9,7 +9,7 @@ using System.Data;
 public static class PluginInfo {
     public const string GUID = "dev.librelandcommunity.client";
     public const string NAME = "LibreLand-Client";
-    public const string VERSION = "0.0.4";
+    public const string VERSION = "0.0.8";
 }
 
 [BepInPlugin(PluginInfo.GUID, PluginInfo.NAME, PluginInfo.VERSION)]
