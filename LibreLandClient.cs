@@ -23,6 +23,9 @@ public class LibreLandClient : BaseUnityPlugin
     public static string baseSteamScreenshotPrefixHTTP = "http://127.0.0.1:8003";
     public static string baseSteamScreenshotPrefixHTTPS = "http://127.0.0.1:8003";
 
+    ConfigFile urls;
+    ConfigFile user;
+
     private static ConfigEntry<string> urlConfig;
     private static ConfigEntry<string> thingDefinitionUrlConfig;
     private static ConfigEntry<string> thingDefinitionAreaBundleUrlConfig;
@@ -34,14 +37,17 @@ public class LibreLandClient : BaseUnityPlugin
 
     private void Awake()
     {
-        urlConfig = Config.Bind("URL", "BaseURL", baseUrl, "Replacement url that used to point to 'anyland.com'");
-        thingDefinitionUrlConfig = Config.Bind("URL", "ThingDefinitionURL", baseThingDefinitionUrl, "Replacement url that used to points to things");
-        thingDefinitionAreaBundleUrlConfig = Config.Bind("URL", "ThingDefinitionAreaBundleUrl", baseThingDefinitionAreaBundleUrl, "Replacement url that used to points to areas");
-        steamScreenshotPrefixHTTPConfig = Config.Bind("URL", "SteamScreenshotPrefixHTTP", baseSteamScreenshotPrefixHTTP, "Replacement url that used to points to HTTP steam screenshots");
-        steamScreenshotPrefixHTTPSConfig = Config.Bind("URL", "SteamScreenshotPrefixHTTPS", baseSteamScreenshotPrefixHTTPS, "Replacement url that used to points to HTTPS steam screenshots");
+        urls = new ConfigFile(Path.Combine(Paths.ConfigPath, "LibreLand-Server-Urls.cfg"), true);
+        user = new ConfigFile(Path.Combine(Paths.ConfigPath, "LibreLand-Server-User.cfg"), true);
+
+        urlConfig = urls.Bind("URL", "BaseURL", baseUrl, "Replacement url that used to point to 'anyland.com'");
+        thingDefinitionUrlConfig = urls.Bind("URL", "ThingDefinitionURL", baseThingDefinitionUrl, "Replacement url that used to points to things");
+        thingDefinitionAreaBundleUrlConfig = urls.Bind("URL", "ThingDefinitionAreaBundleUrl", baseThingDefinitionAreaBundleUrl, "Replacement url that used to points to areas");
+        steamScreenshotPrefixHTTPConfig = urls.Bind("URL", "SteamScreenshotPrefixHTTP", baseSteamScreenshotPrefixHTTP, "Replacement url that used to points to HTTP steam screenshots");
+        steamScreenshotPrefixHTTPSConfig = urls.Bind("URL", "SteamScreenshotPrefixHTTPS", baseSteamScreenshotPrefixHTTPS, "Replacement url that used to points to HTTPS steam screenshots");
         
-        usernameConfig = Config.Bind("USER", "Username", System.Environment.MachineName, "");
-        passwordConfig = Config.Bind("USER", "Password", "REPLACEME", "");
+        usernameConfig = user.Bind("USER", "Username", System.Environment.MachineName, "");
+        passwordConfig = user.Bind("USER", "Password", "REPLACEME", "");
 
         Logger.LogInfo($"Plugin {PluginInfo.GUID} is loaded!");
         harmony.PatchAll();
