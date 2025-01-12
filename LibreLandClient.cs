@@ -215,4 +215,34 @@ public class LibrelandClient : BaseUnityPlugin
             return instructionsList;
         }
     }
+
+    [HarmonyPatch(typeof(Dialog), "ShowDesktopHelp")]
+    class DialogPatch {
+        [HarmonyTranspiler]
+        public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+        {
+            var instructionsList = instructions.ToList();
+             for (int i = 0; i < instructionsList.Count; i++)
+            {
+                var instruction = instructionsList[i];
+                
+                if (instruction.opcode.Equals(OpCodes.Ldstr) && instruction.operand is string str)
+                {
+                    if (str.Equals("and explore via PC + keyboard")) {
+                        instructionsList[i] = new CodeInstruction(OpCodes.Ldstr, "and explore via PC + keyboard \nArchive by Zetaphor, LeCloutPanda and \nthe community for sharing their cache with Libreland.");
+                    }
+                }
+            }
+
+            return instructionsList.AsEnumerable();
+        }
+    }
+
+    [HarmonyPatch(typeof(VideoDialog), "Start")]
+    class VideoDialogPatch {
+        [HarmonyPostfix]
+        static void RemoveVideoPanelBecauseItsBroken(VideoDialog __instance) {
+            __instance.transform.GetChild(0).GetChild(1).gameObject.SetActive(false);
+        }
+    }
 }
