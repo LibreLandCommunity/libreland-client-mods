@@ -3,6 +3,8 @@ using BepInEx;
 using UnityEngine;
 using System.Reflection;
 using System.Reflection.Emit;
+using BepInEx.Configuration;
+using System.Data;
 
 public static class PluginInfo {
     public const string GUID = "dev.librelandcommunity.client";
@@ -16,13 +18,31 @@ public class LibreLandClient : BaseUnityPlugin
     private readonly Harmony harmony = new Harmony(PluginInfo.GUID);
 
     public static string baseUrl = "http://127.0.0.1:8000";
-    public static string thingDefinitionUrl = "http://127.0.0.1:8001";
-    public static string thingDefinitionAreaBundleUrl = "http://127.0.0.1:8002";
-    public static string steamScreenshotPrefixHTTP = "http://127.0.0.1:8003";
-    public static string steamScreenshotPrefixHTTPS = "http://127.0.0.1:8003";
+    public static string baseThingDefinitionUrl = "http://127.0.0.1:8001";
+    public static string baseThingDefinitionAreaBundleUrl = "http://127.0.0.1:8002";
+    public static string baseSteamScreenshotPrefixHTTP = "http://127.0.0.1:8003";
+    public static string baseSteamScreenshotPrefixHTTPS = "http://127.0.0.1:8003";
+
+    private static ConfigEntry<string> urlConfig;
+    private static ConfigEntry<string> thingDefinitionUrlConfig;
+    private static ConfigEntry<string> thingDefinitionAreaBundleUrlConfig;
+    private static ConfigEntry<string> steamScreenshotPrefixHTTPConfig;
+    private static ConfigEntry<string> steamScreenshotPrefixHTTPSConfig;
+
+    private static ConfigEntry<string> usernameConfig;
+    private static ConfigEntry<string> passwordConfig;
 
     private void Awake()
     {
+        urlConfig = Config.Bind("URL", "BaseURL", baseUrl, "Replacement url that used to point to 'anyland.com'");
+        thingDefinitionUrlConfig = Config.Bind("URL", "ThingDefinitionURL", baseThingDefinitionUrl, "Replacement url that used to points to things");
+        thingDefinitionAreaBundleUrlConfig = Config.Bind("URL", "ThingDefinitionAreaBundleUrl", baseThingDefinitionAreaBundleUrl, "Replacement url that used to points to areas");
+        steamScreenshotPrefixHTTPConfig = Config.Bind("URL", "SteamScreenshotPrefixHTTP", baseSteamScreenshotPrefixHTTP, "Replacement url that used to points to HTTP steam screenshots");
+        steamScreenshotPrefixHTTPSConfig = Config.Bind("URL", "SteamScreenshotPrefixHTTPS", baseSteamScreenshotPrefixHTTPS, "Replacement url that used to points to HTTPS steam screenshots");
+        
+        usernameConfig = Config.Bind("USER", "Username", System.Environment.MachineName, "");
+        passwordConfig = Config.Bind("USER", "Password", "REPLACEME", "");
+
         Logger.LogInfo($"Plugin {PluginInfo.GUID} is loaded!");
         harmony.PatchAll();
     }
@@ -32,12 +52,13 @@ public class LibreLandClient : BaseUnityPlugin
         [HarmonyPatch(nameof(ServerManager.Startup))]
         [HarmonyPrefix]
         static bool ChangeBaseUrl(ServerManager __instance, string ___serverBaseUrl){
-            Debug.Log($"Changing RemoteServerBaseUrl to {baseUrl}");
+            Debug.Log($"Changing RemoteServerBaseUrl to {urlConfig.Value}");
 
             try {
                 MethodInfo setterMethod = typeof(ServerManager).GetProperty("status", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetSetMethod(true);
                 setterMethod.Invoke(__instance, new object[] { ManagerStatus.Initializing }); 
-                ___serverBaseUrl = __instance.RemoteServerBaseUrl = baseUrl;
+                __instance.RemoteServerBaseUrl = urlConfig.Value;
+                ___serverBaseUrl = __instance.RemoteServerBaseUrl;
                 __instance.StartAuthentication();
                 return true;
             } catch (Exception ex) {
@@ -64,11 +85,10 @@ public class LibreLandClient : BaseUnityPlugin
                     fieldInfo.Name.Equals("GetThingDefinition_CDN") &&
                     fieldInfo.DeclaringType.Equals(typeof(ServerURLs)))
                 {
-                    instructionsList[i] = new CodeInstruction(OpCodes.Ldstr, thingDefinitionUrl);
+                    instructionsList[i] = new CodeInstruction(OpCodes.Ldstr, thingDefinitionUrlConfig.Value);
                 }
             }
 
-            // Return the modified instructions
             return instructionsList.AsEnumerable();
         }
 
@@ -87,11 +107,23 @@ public class LibreLandClient : BaseUnityPlugin
                     fieldInfo.Name.Equals("GetThingDefinitionAreaBundle_CDN") &&
                     fieldInfo.DeclaringType.Equals(typeof(ServerURLs)))
                 {
-                    instructionsList[i] = new CodeInstruction(OpCodes.Ldstr, thingDefinitionAreaBundleUrl);
+                    instructionsList[i] = new CodeInstruction(OpCodes.Ldstr, thingDefinitionAreaBundleUrlConfig.Value);
                 }
             }
 
             return instructionsList.AsEnumerable();
+        }
+    }
+
+    [HarmonyPatch(typeof(SteamManager), nameof(SteamManager.GetAuthSessionTicket))]
+    class SteamManagerPatch {
+        [HarmonyTranspiler]
+        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) {
+            Debug.Log("Chaning return method of GetAuthSessionTicket");
+            var instructionsList = new List<CodeInstruction>();
+            instructionsList.Add(new CodeInstruction(OpCodes.Ldstr, $"{usernameConfig.Value}|{passwordConfig.Value}"));
+            instructionsList.Add(new CodeInstruction(OpCodes.Ret));
+            return instructionsList;
         }
     }
 
@@ -103,7 +135,7 @@ public class LibreLandClient : BaseUnityPlugin
         {
             if (__result.Contains("http://steamuserimages-a.akamaihd.net/ugc/"))
             {
-                __result = __result.Replace("http://steamuserimages-a.akamaihd.net/ugc/", steamScreenshotPrefixHTTP);
+                __result = __result.Replace("http://steamuserimages-a.akamaihd.net/ugc/", steamScreenshotPrefixHTTPConfig.Value);
             }
         }
     }
@@ -116,7 +148,7 @@ public class LibreLandClient : BaseUnityPlugin
         {
             if (__result.Contains("https://steamuserimages-a.akamaihd.net/ugc/"))
             {
-                __result = __result.Replace("http://steamuserimages-a.akamaihd.net/ugc/", steamScreenshotPrefixHTTP);
+                __result = __result.Replace("http://steamuserimages-a.akamaihd.net/ugc/", steamScreenshotPrefixHTTPSConfig.Value);
             }
         }
 
@@ -132,7 +164,7 @@ public class LibreLandClient : BaseUnityPlugin
                 
                 if (instruction.opcode.Equals(OpCodes.Ldstr) && instruction.operand is string str && str.Equals("steamuserimages-a.akamaihd.net/"))
                 {
-                    instructionsList[i] = new CodeInstruction(OpCodes.Ldstr, steamScreenshotPrefixHTTP.Replace("http://", ""));
+                    instructionsList[i] = new CodeInstruction(OpCodes.Ldstr, steamScreenshotPrefixHTTPConfig.Value.Replace("http://", ""));
                 }
             }
             
@@ -153,7 +185,7 @@ public class LibreLandClient : BaseUnityPlugin
                 
                 if (instruction.opcode.Equals(OpCodes.Ldstr) && instruction.operand is string str && str.Equals("https://steamuserimages-a.akamaihd.net/ugc/"))
                 {
-                    instructionsList[i] = new CodeInstruction(OpCodes.Ldstr, steamScreenshotPrefixHTTPS);
+                    instructionsList[i] = new CodeInstruction(OpCodes.Ldstr, steamScreenshotPrefixHTTPSConfig.Value);
                 }
             }
             
@@ -174,7 +206,7 @@ public class LibreLandClient : BaseUnityPlugin
                 
                 if (instruction.opcode.Equals(OpCodes.Ldstr) && instruction.operand is string str && str.Equals("https://steamuserimages-a.akamaihd.net/ugc/"))
                 {
-                    instructionsList[i] = new CodeInstruction(OpCodes.Ldstr, steamScreenshotPrefixHTTPS);
+                    instructionsList[i] = new CodeInstruction(OpCodes.Ldstr, steamScreenshotPrefixHTTPSConfig.Value);
                 }
             }
             
