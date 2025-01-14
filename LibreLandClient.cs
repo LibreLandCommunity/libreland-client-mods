@@ -30,6 +30,9 @@ public class LibrelandClient : BaseUnityPlugin
     private static ConfigEntry<string> thingDefinitionAreaBundleUrlConfig;
     private static ConfigEntry<string> steamScreenshotPrefixHTTPConfig;
     private static ConfigEntry<string> steamScreenshotPrefixHTTPSConfig;
+    private static ConfigEntry<string> punAppIDConfig;
+    private static ConfigEntry<string> punChatIDConfig;
+    private static ConfigEntry<string> punVoiceIDConfig;
 
     private static ConfigEntry<string> usernameConfig;
     private static ConfigEntry<string> passwordConfig;
@@ -44,6 +47,9 @@ public class LibrelandClient : BaseUnityPlugin
         thingDefinitionAreaBundleUrlConfig = urls.Bind("URL", "ThingDefinitionAreaBundleUrl", baseThingDefinitionAreaBundleUrl, "Replacement url that used to points to areas");
         steamScreenshotPrefixHTTPConfig = urls.Bind("URL", "SteamScreenshotPrefixHTTP", baseSteamScreenshotPrefixHTTP, "Replacement url that used to points to HTTP steam screenshots");
         steamScreenshotPrefixHTTPSConfig = urls.Bind("URL", "SteamScreenshotPrefixHTTPS", baseSteamScreenshotPrefixHTTPS, "Replacement url that used to points to HTTPS steam screenshots");
+        punAppIDConfig = urls.Bind("URL", "PUNAppID", PhotonNetwork.PhotonServerSettings.AppID, "Replacement app ID for pun servers");
+        punChatIDConfig = urls.Bind("URL", "PUNChatID", PhotonNetwork.PhotonServerSettings.ChatAppID, "Replacement chat ID for pun servers");
+        punVoiceIDConfig = urls.Bind("URL", "PUNVoiceID", PhotonNetwork.PhotonServerSettings.VoiceAppID, "Replacement voice ID for pun servers");
         
         usernameConfig = user.Bind("USER", "Username", System.Environment.MachineName, "");
         passwordConfig = user.Bind("USER", "Password", "REPLACEME", "");
@@ -113,6 +119,19 @@ public class LibrelandClient : BaseUnityPlugin
             }
 
             return instructionsList.AsEnumerable();
+        }
+    }
+
+    [HarmonyPatch(typeof(BroadcastNetworkManager), "OverridePhotonAppId")]
+    class BroadcastNetworkManagerPatch {
+        [HarmonyPostfix]
+        static void Postfix() {
+            Debug.Log($"Changing PUN AppID to {punAppIDConfig.Value}");
+            PhotonNetwork.PhotonServerSettings.AppID = punAppIDConfig.Value;
+            Debug.Log($"Changing PUN ChatID to {punChatIDConfig.Value}");
+            PhotonNetwork.PhotonServerSettings.ChatAppID = punChatIDConfig.Value;
+            Debug.Log($"Changing PUN VoidID to {punVoiceIDConfig.Value}");
+            PhotonNetwork.PhotonServerSettings.VoiceAppID = punVoiceIDConfig.Value;
         }
     }
 
@@ -228,7 +247,7 @@ public class LibrelandClient : BaseUnityPlugin
                 if (instruction.opcode.Equals(OpCodes.Ldstr) && instruction.operand is string str)
                 {
                     if (str.Equals("and explore via PC + keyboard")) {
-                        instructionsList[i] = new CodeInstruction(OpCodes.Ldstr, "and explore via PC + keyboard \nArchive by Zetaphor, LeCloutPanda and \nthe community for sharing their cache with Libreland.");
+                        instructionsList[i] = new CodeInstruction(OpCodes.Ldstr, "and explore via PC + keyboard \nArchive by Zetaphor, LeCloutPanda \nand the Anyland community for sharing \ntheir cache with Libreland.");
                     }
                 }
             }
